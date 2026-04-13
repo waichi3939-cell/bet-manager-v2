@@ -19,7 +19,13 @@
       "Bash(powershell -Command \"taskkill /PID 23288 /F /T\")",
       "Bash(python -c \"import uvicorn; uvicorn.run\\('main:app', host='127.0.0.1', port=8001\\)\")",
       "Bash(curl -s http://localhost:8001/health)",
-      "Bash(curl -s \"http://localhost:8001/odds?raceId=202504130412\")"
+      "Bash(curl -s \"http://localhost:8001/odds?raceId=202504130412\")",
+      "Bash(powershell -Command \"Get-Process python* -ErrorAction SilentlyContinue | Select-Object Id, ProcessName\")",
+      "Bash(powershell -Command \"Get-Process uvicorn* -ErrorAction SilentlyContinue | Select-Object Id, ProcessName\")",
+      "Bash(taskkill //PID 14204 //F)",
+      "Bash(taskkill //PID 22236 //F)",
+      "Bash(powershell -Command \"Start-Process 'c:\\\\Users\\\\waichi\\\\Desktop\\\\bet-manager-v2\\\\index.html'\")",
+      "Bash(node -e ':*)"
     ]
   }
 }

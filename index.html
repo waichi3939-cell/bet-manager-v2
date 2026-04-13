@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>BET Manager - 三連単ベットマネジメント</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:"Segoe UI","Meiryo",sans-serif;
+  background:#0f1117;color:#c9d1d9;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  padding:40px 20px;
+}
+h1{font-size:22px;color:#e6edf3;margin-bottom:6px;letter-spacing:.5px}
+.subtitle{font-size:13px;color:#6e7681;margin-bottom:32px}
+
+/* ---------- Params ---------- */
+.params{
+  display:flex;gap:24px;margin-bottom:28px;
+  font-size:13px;color:#8b949e;
+}
+.params span{color:#c9d1d9;font-weight:600}
+
+/* ---------- Input Row ---------- */
+.input-row{
+  display:flex;gap:16px;align-items:flex-end;margin-bottom:28px;
+  flex-wrap:wrap;justify-content:center;
+}
+.input-group{display:flex;flex-direction:column;gap:4px}
+.input-group .group-label{font-size:12px;color:#6e7681;letter-spacing:.3px}
+.input-group .fields{display:flex;align-items:center;gap:4px}
+.input-group .fields .sep{color:#6e7681;font-size:13px}
+select.race-select{
+  padding:7px 8px;
+  background:#161b22;border:1px solid #30363d;border-radius:6px;
+  color:#e6edf3;font-size:14px;outline:none;
+  cursor:pointer;appearance:auto;
+}
+select.race-select:focus{border-color:#58a6ff}
+.year-fixed{font-size:14px;color:#8b949e;padding:0 2px}
+#fetchBtn{
+  padding:8px 20px;height:36px;
+  background:#238636;border:1px solid #2ea043;border-radius:6px;
+  color:#fff;font-size:14px;font-weight:600;cursor:pointer;
+  transition:background .15s;align-self:flex-end;
+}
+#fetchBtn:hover:not(:disabled){background:#2ea043}
+#fetchBtn:disabled{opacity:.5;cursor:not-allowed}
+.spinner{display:none;width:16px;height:16px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;margin-left:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- Table ---------- */
+.table-wrap{
+  width:680px;margin-bottom:24px;
+  border:1px solid #30363d;border-radius:8px;overflow:hidden;
+}
+table{width:100%;border-collapse:collapse}
+thead{background:#161b22}
+th{
+  padding:10px 16px;font-size:12px;font-weight:600;
+  color:#8b949e;text-align:center;text-transform:uppercase;
+  letter-spacing:.5px;border-bottom:1px solid #30363d;
+}
+td{
+  padding:10px 16px;text-align:center;font-size:15px;
+  border-bottom:1px solid #21262d;font-variant-numeric:tabular-nums;
+}
+tr.adopted{background:rgba(35,134,54,.12)}
+tr.adopted td:first-child{color:#3fb950;font-weight:700}
+tr.excluded{opacity:.35}
+tr.excluded td{text-decoration:line-through;color:#6e7681}
+
+/* ---------- Summary ---------- */
+.summary{
+  width:680px;
+  background:#161b22;border:1px solid #30363d;border-radius:8px;
+  padding:20px 24px;margin-bottom:20px;
+}
+.summary-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:12px 32px;
+}
+.summary-item{display:flex;justify-content:space-between;font-size:14px}
+.summary-item .label{color:#8b949e}
+.summary-item .value{font-weight:700;color:#e6edf3;font-variant-numeric:tabular-nums}
+
+/* ---------- Verdict ---------- */
+.verdict{
+  width:680px;text-align:center;
+  padding:16px;border-radius:8px;
+  font-size:18px;font-weight:700;
+  margin-bottom:20px;
+}
+.verdict.go{background:rgba(35,134,54,.15);border:1px solid #2ea043;color:#3fb950}
+.verdict.nogo{background:rgba(248,81,73,.12);border:1px solid #f85149;color:#f85149}
+.verdict.idle{display:none}
+
+/* ---------- Status ---------- */
+#status{
+  width:680px;text-align:center;
+  font-size:13px;color:#8b949e;min-height:20px;
+}
+#status.error{color:#f85149}
+</style>
+</head>
+<body>
+
+<h1>BET Manager</h1>
+<p class="subtitle">三連単ベットマネジメントツール</p>
+
+<div class="params">
+  <div>資金: <span>30,000</span>円</div>
+  <div>目標払戻: <span>1,000,000</span>円</div>
+</div>
+
+<div class="input-row">
+  <div class="input-group">
+    <span class="group-label">日付</span>
+    <div class="fields">
+      <span class="year-fixed">2026年</span>
+      <select id="selMonth" class="race-select"></select>
+      <span class="sep">月</span>
+      <select id="selDay" class="race-select"></select>
+      <span class="sep">日</span>
+    </div>
+  </div>
+  <div class="input-group">
+    <span class="group-label">レース場</span>
+    <div class="fields">
+      <select id="selJou" class="race-select"></select>
+    </div>
+  </div>
+  <div class="input-group">
+    <span class="group-label">レース</span>
+    <div class="fields">
+      <select id="selRace" class="race-select"></select>
+    </div>
+  </div>
+  <button id="fetchBtn" onclick="handleFetch()">
+    オッズ更新
+    <span class="spinner" id="spinner"></span>
+  </button>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>買い目</th>
+        <th>オッズ</th>
+        <th>最小ベット</th>
+        <th>最終ベット</th>
+      </tr>
+    </thead>
+    <tbody id="oddsBody">
+      <tr><td colspan="4" style="color:#6e7681">オッズ未取得</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="summary" id="summary" style="display:none">
+  <div class="summary-grid">
+    <div class="summary-item">
+      <span class="label">採用点数</span>
+      <span class="value" id="adoptedCount">-</span>
+    </div>
+    <div class="summary-item">
+      <span class="label">合計ベット額</span>
+      <span class="value" id="totalBet">-</span>
+    </div>
+    <div class="summary-item">
+      <span class="label">1点あたり上乗せ</span>
+      <span class="value" id="extraPerPoint">-</span>
+    </div>
+    <div class="summary-item">
+      <span class="label">手元残り(端数)</span>
+      <span class="value" id="remainder">-</span>
+    </div>
+  </div>
+</div>
+
+<div class="verdict idle" id="verdict"></div>
+
+<div id="status"></div>
+
+<script>
+const BACKEND_URL = "http://localhost:8000";
+
+const BUDGET = 30000;
+const TARGET = 1000000;
+const COMBINATIONS = ["2-3-5", "2-5-3", "3-2-5", "3-5-2"];
+
+const VENUES = [
+  ["01","桐生"],["02","戸田"],["03","江戸川"],["04","平和島"],["05","多摩川"],
+  ["06","浜名湖"],["07","蒲郡"],["08","常滑"],["09","津"],["10","三国"],
+  ["11","びわこ"],["12","住之江"],["13","尼崎"],["14","鳴門"],["15","丸亀"],
+  ["16","児島"],["17","宮島"],["18","徳山"],["19","下関"],["20","若松"],
+  ["21","芦屋"],["22","福岡"],["23","唐津"],["24","大村"],
+];
+
+function initSelectors() {
+  const now = new Date();
+  const curMonth = now.getMonth() + 1;
+  const curDay = now.getDate();
+
+  const selMonth = document.getElementById("selMonth");
+  for (let m = 1; m <= 12; m++) {
+    const opt = new Option(`${m}`, String(m).padStart(2, "0"));
+    if (m === curMonth) opt.selected = true;
+    selMonth.appendChild(opt);
+  }
+
+  const selDay = document.getElementById("selDay");
+  for (let d = 1; d <= 31; d++) {
+    const opt = new Option(`${d}`, String(d).padStart(2, "0"));
+    if (d === curDay) opt.selected = true;
+    selDay.appendChild(opt);
+  }
+
+  const selJou = document.getElementById("selJou");
+  for (const [code, name] of VENUES) {
+    const opt = new Option(`${name}`, code);
+    if (code === "12") opt.selected = true;
+    selJou.appendChild(opt);
+  }
+
+  const selRace = document.getElementById("selRace");
+  for (let r = 1; r <= 12; r++) {
+    const opt = new Option(`${r}R`, String(r).padStart(2, "0"));
+    selRace.appendChild(opt);
+  }
+}
+
+function buildRaceId() {
+  const month = document.getElementById("selMonth").value;
+  const day = document.getElementById("selDay").value;
+  const jcd = document.getElementById("selJou").value;
+  const rno = document.getElementById("selRace").value;
+  return `2026${month}${day}${jcd}${rno}`;
+}
+
+function setStatus(msg, isError) {
+  const el = document.getElementById("status");
+  el.textContent = msg;
+  el.className = isError ? "error" : "";
+}
+
+async function handleFetch() {
+  const raceId = buildRaceId();
+
+  const btn = document.getElementById("fetchBtn");
+  const spinner = document.getElementById("spinner");
+  btn.disabled = true;
+  spinner.style.display = "inline-block";
+  setStatus("オッズ取得中...", false);
+
+  try {
+    const resp = await fetch(`${BACKEND_URL}/odds?raceId=${encodeURIComponent(raceId)}`);
+    if (!resp.ok) {
+      const detail = resp.status === 503 ? "オッズ取得失敗（レースデータなし）" : `サーバーエラー (${resp.status})`;
+      setStatus(detail, true);
+      return;
+    }
+    const data = await resp.json();
+    processOdds(data.items);
+    setStatus(`取得完了 — ${data.fetchedAt}`, false);
+  } catch (e) {
+    setStatus("バックエンドに接続できません", true);
+  } finally {
+    btn.disabled = false;
+    spinner.style.display = "none";
+  }
+}
+
+function processOdds(items) {
+  // オッズマップを構築 (全4買い目分、取得できなかったものは null)
+  const oddsMap = {};
+  for (const c of COMBINATIONS) oddsMap[c] = null;
+  for (const item of items) {
+    if (COMBINATIONS.includes(item.combination)) {
+      const v = parseFloat(item.odds);
+      if (!isNaN(v) && v >= 1.0) oddsMap[item.combination] = v;
+    }
+  }
+
+  // ステップ1: 有効点の抽出
+  let validPoints = COMBINATIONS
+    .filter(c => oddsMap[c] !== null)
+    .map(c => ({ combination: c, odds: oddsMap[c] }));
+
+  // ステップ2: 縮退アルゴリズム
+  // オッズ昇順ソート
+  validPoints.sort((a, b) => a.odds - b.odds);
+
+  let adopted = null;
+  for (let n = validPoints.length; n >= 1; n--) {
+    const candidates = validPoints.slice(validPoints.length - n); // 上位n点(高オッズ側)
+    const minBets = candidates.map(p => Math.ceil(TARGET / p.odds / 100) * 100);
+    const total = minBets.reduce((s, v) => s + v, 0);
+    if (total <= BUDGET) {
+      adopted = candidates.map((p, i) => ({ ...p, minBet: minBets[i] }));
+      break;
+    }
+  }
+
+  const adoptedSet = new Set(adopted ? adopted.map(a => a.combination) : []);
+
+  // ステップ3: 残額の均等上乗せ
+  let extraPerPoint = 0;
+  let totalBet = 0;
+  let remainder = BUDGET;
+
+  if (adopted && adopted.length > 0) {
+    const minTotal = adopted.reduce((s, a) => s + a.minBet, 0);
+    const leftover = BUDGET - minTotal;
+    extraPerPoint = Math.floor(leftover / adopted.length / 100) * 100;
+    adopted.forEach(a => { a.finalBet = a.minBet + extraPerPoint; });
+    totalBet = adopted.reduce((s, a) => s + a.finalBet, 0);
+    remainder = BUDGET - totalBet;
+  }
+
+  // テーブル描画
+  const tbody = document.getElementById("oddsBody");
+  tbody.innerHTML = "";
+  for (const c of COMBINATIONS) {
+    const tr = document.createElement("tr");
+    const isAdopted = adoptedSet.has(c);
+    const odds = oddsMap[c];
+    const info = adopted ? adopted.find(a => a.combination === c) : null;
+
+    if (odds === null) {
+      tr.className = "excluded";
+    } else if (!isAdopted) {
+      tr.className = "excluded";
+    } else {
+      tr.className = "adopted";
+    }
+
+    tr.innerHTML = `
+      <td>${c}</td>
+      <td>${odds !== null ? odds.toFixed(1) : "-"}</td>
+      <td>${info ? info.minBet.toLocaleString() : "-"}</td>
+      <td>${info ? info.finalBet.toLocaleString() : "-"}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  // サマリー
+  const summary = document.getElementById("summary");
+  const verdict = document.getElementById("verdict");
+
+  if (adopted && adopted.length > 0) {
+    summary.style.display = "";
+    document.getElementById("adoptedCount").textContent = `${adopted.length} 点`;
+    document.getElementById("totalBet").textContent = `${totalBet.toLocaleString()} 円`;
+    document.getElementById("extraPerPoint").textContent = `${extraPerPoint.toLocaleString()} 円`;
+    document.getElementById("remainder").textContent = `${remainder.toLocaleString()} 円`;
+
+    verdict.textContent = `${adopted.length}点 採用 — 合計 ${totalBet.toLocaleString()}円`;
+    verdict.className = "verdict go";
+  } else {
+    summary.style.display = "none";
+    verdict.textContent = "見送り推奨";
+    verdict.className = "verdict nogo";
+  }
+}
+
+initSelectors();
+</script>
+</body>
+</html>
