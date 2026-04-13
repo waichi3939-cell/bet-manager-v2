@@ -8,14 +8,12 @@ warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
 logger = logging.getLogger(__name__)
 
-TARGET_COMBINATIONS = {"2-3-5", "2-5-3", "3-2-5", "3-5-2"}
-
-
-def fetch_odds(race_id: str) -> list[dict]:
+def fetch_odds(race_id: str, combinations: set[str] | None = None) -> list[dict]:
     """boatrace.jp から三連単オッズを取得する。
 
     Args:
         race_id: "YYYYMMDDJJRR" 形式 (8桁=開催日, 2桁=場コード, 2桁=レース番号)
+        combinations: 取得する買い目のセット。None なら全買い目を返す。
 
     Returns:
         [{"combination": "2-3-5", "odds": 45.0}, ...]
@@ -83,7 +81,7 @@ def fetch_odds(race_id: str) -> list[dict]:
             first = col + 1
             combo = f"{first}-{second_place[col]}-{third}"
 
-            if combo in TARGET_COMBINATIONS:
+            if combinations is None or combo in combinations:
                 try:
                     odds = float(odds_text)
                     results.append({"combination": combo, "odds": odds})

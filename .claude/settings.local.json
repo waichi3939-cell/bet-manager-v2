@@ -25,7 +25,8 @@
       "Bash(taskkill //PID 14204 //F)",
       "Bash(taskkill //PID 22236 //F)",
       "Bash(powershell -Command \"Start-Process 'c:\\\\Users\\\\waichi\\\\Desktop\\\\bet-manager-v2\\\\index.html'\")",
-      "Bash(node -e ':*)"
+      "Bash(node -e ':*)",
+      "Bash(powershell -Command \"Start-Process 'c:\\\\Users\\\\waichi\\\\Desktop\\\\bet-manager-v2\\\\custom.html'\")"
     ]
   }
 }

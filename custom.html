@@ -1,0 +1,375 @@
+<!-- custom.html: 買い目・資金・目標を手動入力するカスタム版 -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>BET Manager - カスタム</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:"Segoe UI","Meiryo",sans-serif;
+  background:#0f1117;color:#c9d1d9;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  padding:40px 20px;
+}
+h1{font-size:22px;color:#e6edf3;margin-bottom:6px;letter-spacing:.5px}
+.subtitle{font-size:13px;color:#6e7681;margin-bottom:32px}
+
+/* ---------- Params ---------- */
+.params{
+  display:flex;gap:24px;margin-bottom:28px;
+  font-size:13px;color:#8b949e;align-items:flex-end;
+}
+.param-group{display:flex;flex-direction:column;gap:4px}
+.param-group .param-label{font-size:12px;color:#6e7681;letter-spacing:.3px}
+.param-group .param-field{display:flex;align-items:center;gap:4px}
+.param-input{
+  width:130px;padding:7px 10px;
+  background:#161b22;border:1px solid #30363d;border-radius:6px;
+  color:#e6edf3;font-size:14px;outline:none;
+  font-variant-numeric:tabular-nums;text-align:right;
+}
+.param-input:focus{border-color:#58a6ff}
+.param-unit{font-size:13px;color:#6e7681}
+
+/* ---------- Bet Rows ---------- */
+.bet-section{width:680px;margin-bottom:20px}
+.bet-section-header{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:10px;
+}
+.bet-section-header h2{font-size:14px;color:#8b949e;font-weight:600}
+#addRowBtn{
+  padding:5px 14px;
+  background:#1f6feb;border:1px solid #388bfd;border-radius:6px;
+  color:#fff;font-size:13px;font-weight:600;cursor:pointer;
+  transition:background .15s;
+}
+#addRowBtn:hover{background:#388bfd}
+.bet-row{
+  display:flex;gap:8px;align-items:center;margin-bottom:6px;
+}
+.combo-input{
+  width:120px;padding:7px 10px;
+  background:#161b22;border:1px solid #30363d;border-radius:6px;
+  color:#e6edf3;font-size:14px;outline:none;
+  font-family:monospace;text-align:center;
+}
+.combo-input:focus{border-color:#58a6ff}
+.odds-input{
+  width:100px;padding:7px 10px;
+  background:#161b22;border:1px solid #30363d;border-radius:6px;
+  color:#e6edf3;font-size:14px;outline:none;
+  font-variant-numeric:tabular-nums;text-align:right;
+}
+.odds-input:focus{border-color:#58a6ff}
+.bet-row .field-label{font-size:12px;color:#6e7681;min-width:40px}
+.remove-btn{
+  background:transparent;border:none;
+  color:#6e7681;font-size:18px;cursor:pointer;
+  padding:4px 8px;line-height:1;transition:color .15s;
+}
+.remove-btn:hover{color:#f85149}
+
+/* ---------- Calc Button ---------- */
+.calc-row{
+  width:680px;display:flex;justify-content:center;margin-bottom:28px;
+}
+#calcBtn{
+  padding:8px 28px;height:36px;
+  background:#238636;border:1px solid #2ea043;border-radius:6px;
+  color:#fff;font-size:14px;font-weight:600;cursor:pointer;
+  transition:background .15s;
+}
+#calcBtn:hover{background:#2ea043}
+
+/* ---------- Table ---------- */
+.table-wrap{
+  width:680px;margin-bottom:24px;
+  border:1px solid #30363d;border-radius:8px;overflow:hidden;
+}
+table{width:100%;border-collapse:collapse}
+thead{background:#161b22}
+th{
+  padding:10px 16px;font-size:12px;font-weight:600;
+  color:#8b949e;text-align:center;text-transform:uppercase;
+  letter-spacing:.5px;border-bottom:1px solid #30363d;
+}
+td{
+  padding:10px 16px;text-align:center;font-size:15px;
+  border-bottom:1px solid #21262d;font-variant-numeric:tabular-nums;
+}
+tr.adopted{background:rgba(35,134,54,.12)}
+tr.adopted td:first-child{color:#3fb950;font-weight:700}
+tr.excluded{opacity:.35}
+tr.excluded td{text-decoration:line-through;color:#6e7681}
+
+/* ---------- Summary ---------- */
+.summary{
+  width:680px;
+  background:#161b22;border:1px solid #30363d;border-radius:8px;
+  padding:20px 24px;margin-bottom:20px;
+}
+.summary-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:12px 32px;
+}
+.summary-item{display:flex;justify-content:space-between;font-size:14px}
+.summary-item .label{color:#8b949e}
+.summary-item .value{font-weight:700;color:#e6edf3;font-variant-numeric:tabular-nums}
+
+/* ---------- Verdict ---------- */
+.verdict{
+  width:680px;text-align:center;
+  padding:16px;border-radius:8px;
+  font-size:18px;font-weight:700;
+  margin-bottom:20px;
+}
+.verdict.go{background:rgba(35,134,54,.15);border:1px solid #2ea043;color:#3fb950}
+.verdict.nogo{background:rgba(248,81,73,.12);border:1px solid #f85149;color:#f85149}
+.verdict.idle{display:none}
+
+/* ---------- Status ---------- */
+#status{
+  width:680px;text-align:center;
+  font-size:13px;color:#8b949e;min-height:20px;
+}
+#status.error{color:#f85149}
+</style>
+</head>
+<body>
+
+<h1>BET Manager</h1>
+<p class="subtitle">買い目・資金・目標を自由に設定</p>
+
+<div class="params">
+  <div class="param-group">
+    <span class="param-label">資金</span>
+    <div class="param-field">
+      <input type="number" id="inputBudget" class="param-input" value="30000">
+      <span class="param-unit">円</span>
+    </div>
+  </div>
+  <div class="param-group">
+    <span class="param-label">目標払戻</span>
+    <div class="param-field">
+      <input type="number" id="inputTarget" class="param-input" value="1000000">
+      <span class="param-unit">円</span>
+    </div>
+  </div>
+</div>
+
+<div class="bet-section">
+  <div class="bet-section-header">
+    <h2>買い目 / オッズ</h2>
+    <button id="addRowBtn" onclick="addRow()">＋ 買い目追加</button>
+  </div>
+  <div id="betRows"></div>
+</div>
+
+<div class="calc-row">
+  <button id="calcBtn" onclick="runCalculation()">計算する</button>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>買い目</th>
+        <th>オッズ</th>
+        <th>最小ベット</th>
+        <th>最終ベット</th>
+      </tr>
+    </thead>
+    <tbody id="oddsBody">
+      <tr><td colspan="4" style="color:#6e7681">未計算</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="summary" id="summary" style="display:none">
+  <div class="summary-grid">
+    <div class="summary-item">
+      <span class="label">採用点数</span>
+      <span class="value" id="adoptedCount">-</span>
+    </div>
+    <div class="summary-item">
+      <span class="label">合計ベット額</span>
+      <span class="value" id="totalBet">-</span>
+    </div>
+    <div class="summary-item">
+      <span class="label">1点あたり上乗せ</span>
+      <span class="value" id="extraPerPoint">-</span>
+    </div>
+    <div class="summary-item">
+      <span class="label">手元残り(端数)</span>
+      <span class="value" id="remainder">-</span>
+    </div>
+  </div>
+</div>
+
+<div class="verdict idle" id="verdict"></div>
+
+<div id="status"></div>
+
+<script>
+const DEFAULT_COMBOS = ["2-3-5", "2-5-3", "3-2-5", "3-5-2"];
+
+function createRow(combo, odds) {
+  const row = document.createElement("div");
+  row.className = "bet-row";
+  row.innerHTML = `
+    <span class="field-label">買い目</span>
+    <input type="text" class="combo-input" value="${combo}" placeholder="1-2-3">
+    <span class="field-label">オッズ</span>
+    <input type="number" class="odds-input" value="${odds}" placeholder="0.0" step="0.1" min="1">
+    <button class="remove-btn" onclick="removeRow(this)" title="削除">&times;</button>
+  `;
+  return row;
+}
+
+function addRow(combo, odds) {
+  const container = document.getElementById("betRows");
+  container.appendChild(createRow(combo || "", odds || ""));
+}
+
+function removeRow(btn) {
+  const container = document.getElementById("betRows");
+  if (container.children.length <= 1) return;
+  btn.closest(".bet-row").remove();
+}
+
+function initRows() {
+  for (const c of DEFAULT_COMBOS) addRow(c, "");
+}
+
+function runCalculation() {
+  const BUDGET = parseInt(document.getElementById("inputBudget").value) || 30000;
+  const TARGET = parseInt(document.getElementById("inputTarget").value) || 1000000;
+
+  const rows = document.querySelectorAll(".bet-row");
+  const items = [];
+  rows.forEach(row => {
+    const combo = row.querySelector(".combo-input").value.trim();
+    const odds = parseFloat(row.querySelector(".odds-input").value);
+    if (combo && !isNaN(odds) && odds >= 1.0) {
+      items.push({ combination: combo, odds });
+    }
+  });
+
+  const COMBINATIONS = [...new Set(
+    Array.from(document.querySelectorAll(".combo-input"))
+      .map(el => el.value.trim()).filter(Boolean)
+  )];
+
+  if (COMBINATIONS.length === 0) {
+    setStatus("買い目を入力してください", true);
+    return;
+  }
+
+  processOdds(items, BUDGET, TARGET, COMBINATIONS);
+  setStatus("", false);
+}
+
+function setStatus(msg, isError) {
+  const el = document.getElementById("status");
+  el.textContent = msg;
+  el.className = isError ? "error" : "";
+}
+
+function processOdds(items, BUDGET, TARGET, COMBINATIONS) {
+  // オッズマップを構築
+  const oddsMap = {};
+  for (const c of COMBINATIONS) oddsMap[c] = null;
+  for (const item of items) {
+    if (COMBINATIONS.includes(item.combination)) {
+      const v = parseFloat(item.odds);
+      if (!isNaN(v) && v >= 1.0) oddsMap[item.combination] = v;
+    }
+  }
+
+  // ステップ1: 有効点の抽出
+  let validPoints = COMBINATIONS
+    .filter(c => oddsMap[c] !== null)
+    .map(c => ({ combination: c, odds: oddsMap[c] }));
+
+  // ステップ2: 縮退アルゴリズム
+  // オッズ昇順ソート
+  validPoints.sort((a, b) => a.odds - b.odds);
+
+  let adopted = null;
+  for (let n = validPoints.length; n >= 1; n--) {
+    const candidates = validPoints.slice(validPoints.length - n); // 上位n点(高オッズ側)
+    const minBets = candidates.map(p => Math.ceil(TARGET / p.odds / 100) * 100);
+    const total = minBets.reduce((s, v) => s + v, 0);
+    if (total <= BUDGET) {
+      adopted = candidates.map((p, i) => ({ ...p, minBet: minBets[i] }));
+      break;
+    }
+  }
+
+  const adoptedSet = new Set(adopted ? adopted.map(a => a.combination) : []);
+
+  // ステップ3: 残額の均等上乗せ
+  let extraPerPoint = 0;
+  let totalBet = 0;
+  let remainder = BUDGET;
+
+  if (adopted && adopted.length > 0) {
+    const minTotal = adopted.reduce((s, a) => s + a.minBet, 0);
+    const leftover = BUDGET - minTotal;
+    extraPerPoint = Math.floor(leftover / adopted.length / 100) * 100;
+    adopted.forEach(a => { a.finalBet = a.minBet + extraPerPoint; });
+    totalBet = adopted.reduce((s, a) => s + a.finalBet, 0);
+    remainder = BUDGET - totalBet;
+  }
+
+  // テーブル描画
+  const tbody = document.getElementById("oddsBody");
+  tbody.innerHTML = "";
+  for (const c of COMBINATIONS) {
+    const tr = document.createElement("tr");
+    const isAdopted = adoptedSet.has(c);
+    const odds = oddsMap[c];
+    const info = adopted ? adopted.find(a => a.combination === c) : null;
+
+    if (odds === null) {
+      tr.className = "excluded";
+    } else if (!isAdopted) {
+      tr.className = "excluded";
+    } else {
+      tr.className = "adopted";
+    }
+
+    tr.innerHTML = `
+      <td>${c}</td>
+      <td>${odds !== null ? odds.toFixed(1) : "-"}</td>
+      <td>${info ? info.minBet.toLocaleString() : "-"}</td>
+      <td>${info ? info.finalBet.toLocaleString() : "-"}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  // サマリー
+  const summary = document.getElementById("summary");
+  const verdict = document.getElementById("verdict");
+
+  if (adopted && adopted.length > 0) {
+    summary.style.display = "";
+    document.getElementById("adoptedCount").textContent = `${adopted.length} 点`;
+    document.getElementById("totalBet").textContent = `${totalBet.toLocaleString()} 円`;
+    document.getElementById("extraPerPoint").textContent = `${extraPerPoint.toLocaleString()} 円`;
+    document.getElementById("remainder").textContent = `${remainder.toLocaleString()} 円`;
+
+    verdict.textContent = `${adopted.length}点 採用 — 合計 ${totalBet.toLocaleString()}円`;
+    verdict.className = "verdict go";
+  } else {
+    summary.style.display = "none";
+    verdict.textContent = "見送り推奨";
+    verdict.className = "verdict nogo";
+  }
+}
+
+initRows();
+</script>
+</body>
+</html>

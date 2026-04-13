@@ -30,8 +30,9 @@ def health():
 
 
 @app.get("/odds", response_model=OddsResponse)
-def get_odds(raceId: str):
-    raw = fetch_odds(raceId)
+def get_odds(raceId: str, combinations: str | None = None):
+    combo_set = set(combinations.split(",")) if combinations else None
+    raw = fetch_odds(raceId, combo_set)
     if not raw:
         raise HTTPException(status_code=503, detail="オッズ取得失敗")
     items = [OddsItem(**item) for item in raw]
