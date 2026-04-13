@@ -3,10 +3,11 @@ from datetime import datetime, timezone
 
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from models import HealthResponse, OddsItem, OddsResponse
+from scraper import fetch_odds
 
 load_dotenv()
 
@@ -30,12 +31,10 @@ def health():
 
 @app.get("/odds", response_model=OddsResponse)
 def get_odds(raceId: str):
-    items = [
-        OddsItem(combination="2-3-5", odds=45.0),
-        OddsItem(combination="2-5-3", odds=62.0),
-        OddsItem(combination="3-2-5", odds=38.0),
-        OddsItem(combination="3-5-2", odds=71.0),
-    ]
+    raw = fetch_odds(raceId)
+    if not raw:
+        raise HTTPException(status_code=503, detail="オッズ取得失敗")
+    items = [OddsItem(**item) for item in raw]
     return OddsResponse(
         raceId=raceId,
         items=items,

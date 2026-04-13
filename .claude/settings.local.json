@@ -5,7 +5,21 @@
       "Bash(uvicorn main:app --reload)",
       "Bash(python -c \"import uvicorn; uvicorn.run\\('main:app', host='0.0.0.0', port=8000\\)\")",
       "Bash(curl -s http://localhost:8000/health)",
-      "Bash(curl -s \"http://localhost:8000/odds?raceId=202412011201\")"
+      "Bash(curl -s \"http://localhost:8000/odds?raceId=202412011201\")",
+      "WebFetch(domain:www.boatrace.jp)",
+      "Bash(curl -s \"https://www.boatrace.jp/owpc/pc/race/odds3t?rno=12&jcd=04&hd=20260413\")",
+      "Bash(python scraper.py)",
+      "Bash(curl -s \"http://localhost:8000/odds?raceId=202504130412\")",
+      "Bash(netstat -ano)",
+      "Bash(taskkill //PID 23480 //F)",
+      "Bash(taskkill //PID 23288 //F)",
+      "Bash(taskkill //PID 9016 //F)",
+      "Bash(powershell -Command \"Stop-Process -Id 9016 -Force; Stop-Process -Id 23288 -Force\")",
+      "Bash(powershell -Command \"Get-Process -Id 23288 | Select-Object Id, ProcessName, Path\")",
+      "Bash(powershell -Command \"taskkill /PID 23288 /F /T\")",
+      "Bash(python -c \"import uvicorn; uvicorn.run\\('main:app', host='127.0.0.1', port=8001\\)\")",
+      "Bash(curl -s http://localhost:8001/health)",
+      "Bash(curl -s \"http://localhost:8001/odds?raceId=202504130412\")"
     ]
   }
 }
