@@ -183,7 +183,9 @@ tr.excluded td{text-decoration:line-through;color:#6e7681}
 <div id="status"></div>
 
 <script>
-const BACKEND_URL = "http://localhost:8000";
+const BACKEND_URL = window.location.hostname === 'localhost'
+  ? 'http://localhost:8000'
+  : 'https://bet-manager-v2-api.onrender.com';
 
 const BUDGET = 30000;
 const TARGET = 1000000;
