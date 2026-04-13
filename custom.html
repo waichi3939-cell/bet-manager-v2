@@ -1,4 +1,4 @@
-<!-- custom.html: 買い目・資金・目標を手動入力するカスタム版 -->
+<!-- custom.html: 買い目・資金・目標を手動設定するカスタム版 -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -15,10 +15,29 @@ body{
 h1{font-size:22px;color:#e6edf3;margin-bottom:6px;letter-spacing:.5px}
 .subtitle{font-size:13px;color:#6e7681;margin-bottom:32px}
 
+/* ---------- Input Row (race selectors) ---------- */
+.input-row{
+  display:flex;gap:16px;align-items:flex-end;margin-bottom:28px;
+  flex-wrap:wrap;justify-content:center;
+}
+.input-group{display:flex;flex-direction:column;gap:4px}
+.input-group .group-label{font-size:12px;color:#6e7681;letter-spacing:.3px}
+.input-group .fields{display:flex;align-items:center;gap:4px}
+.input-group .fields .sep{color:#6e7681;font-size:13px}
+select.race-select{
+  padding:7px 8px;
+  background:#161b22;border:1px solid #30363d;border-radius:6px;
+  color:#e6edf3;font-size:14px;outline:none;
+  cursor:pointer;appearance:auto;
+}
+select.race-select:focus{border-color:#58a6ff}
+.year-fixed{font-size:14px;color:#8b949e;padding:0 2px}
+
 /* ---------- Params ---------- */
 .params{
   display:flex;gap:24px;margin-bottom:28px;
   font-size:13px;color:#8b949e;align-items:flex-end;
+  justify-content:center;
 }
 .param-group{display:flex;flex-direction:column;gap:4px}
 .param-group .param-label{font-size:12px;color:#6e7681;letter-spacing:.3px}
@@ -40,7 +59,7 @@ h1{font-size:22px;color:#e6edf3;margin-bottom:6px;letter-spacing:.5px}
 }
 .bet-section-header h2{font-size:14px;color:#8b949e;font-weight:600}
 #addRowBtn{
-  padding:5px 14px;
+  padding:6px 14px;
   background:#1f6feb;border:1px solid #388bfd;border-radius:6px;
   color:#fff;font-size:13px;font-weight:600;cursor:pointer;
   transition:background .15s;
@@ -56,13 +75,6 @@ h1{font-size:22px;color:#e6edf3;margin-bottom:6px;letter-spacing:.5px}
   font-family:monospace;text-align:center;
 }
 .combo-input:focus{border-color:#58a6ff}
-.odds-input{
-  width:100px;padding:7px 10px;
-  background:#161b22;border:1px solid #30363d;border-radius:6px;
-  color:#e6edf3;font-size:14px;outline:none;
-  font-variant-numeric:tabular-nums;text-align:right;
-}
-.odds-input:focus{border-color:#58a6ff}
 .bet-row .field-label{font-size:12px;color:#6e7681;min-width:40px}
 .remove-btn{
   background:transparent;border:none;
@@ -71,17 +83,20 @@ h1{font-size:22px;color:#e6edf3;margin-bottom:6px;letter-spacing:.5px}
 }
 .remove-btn:hover{color:#f85149}
 
-/* ---------- Calc Button ---------- */
-.calc-row{
+/* ---------- Fetch Button ---------- */
+.fetch-row{
   width:680px;display:flex;justify-content:center;margin-bottom:28px;
 }
-#calcBtn{
+#fetchBtn{
   padding:8px 28px;height:36px;
   background:#238636;border:1px solid #2ea043;border-radius:6px;
   color:#fff;font-size:14px;font-weight:600;cursor:pointer;
   transition:background .15s;
 }
-#calcBtn:hover{background:#2ea043}
+#fetchBtn:hover:not(:disabled){background:#2ea043}
+#fetchBtn:disabled{opacity:.5;cursor:not-allowed}
+.spinner{display:none;width:16px;height:16px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;margin-left:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
 
 /* ---------- Table ---------- */
 .table-wrap{
@@ -138,8 +153,33 @@ tr.excluded td{text-decoration:line-through;color:#6e7681}
 </head>
 <body>
 
-<h1>BET Manager</h1>
+<h1>BET Manager - カスタム</h1>
 <p class="subtitle">買い目・資金・目標を自由に設定</p>
+
+<div class="input-row">
+  <div class="input-group">
+    <span class="group-label">日付</span>
+    <div class="fields">
+      <span class="year-fixed">2026年</span>
+      <select id="selMonth" class="race-select"></select>
+      <span class="sep">月</span>
+      <select id="selDay" class="race-select"></select>
+      <span class="sep">日</span>
+    </div>
+  </div>
+  <div class="input-group">
+    <span class="group-label">レース場</span>
+    <div class="fields">
+      <select id="selJou" class="race-select"></select>
+    </div>
+  </div>
+  <div class="input-group">
+    <span class="group-label">レース</span>
+    <div class="fields">
+      <select id="selRace" class="race-select"></select>
+    </div>
+  </div>
+</div>
 
 <div class="params">
   <div class="param-group">
@@ -160,14 +200,17 @@ tr.excluded td{text-decoration:line-through;color:#6e7681}
 
 <div class="bet-section">
   <div class="bet-section-header">
-    <h2>買い目 / オッズ</h2>
+    <h2>買い目</h2>
     <button id="addRowBtn" onclick="addRow()">＋ 買い目追加</button>
   </div>
   <div id="betRows"></div>
 </div>
 
-<div class="calc-row">
-  <button id="calcBtn" onclick="runCalculation()">計算する</button>
+<div class="fetch-row">
+  <button id="fetchBtn" onclick="handleFetch()">
+    オッズ取得して計算
+    <span class="spinner" id="spinner"></span>
+  </button>
 </div>
 
 <div class="table-wrap">
@@ -212,24 +255,75 @@ tr.excluded td{text-decoration:line-through;color:#6e7681}
 <div id="status"></div>
 
 <script>
+const BACKEND_URL = window.location.hostname === 'localhost'
+  ? 'http://localhost:8000'
+  : 'https://bet-manager-v2.onrender.com';
+
 const DEFAULT_COMBOS = ["2-3-5", "2-5-3", "3-2-5", "3-5-2"];
 
-function createRow(combo, odds) {
+const VENUES = [
+  ["01","桐生"],["02","戸田"],["03","江戸川"],["04","平和島"],["05","多摩川"],
+  ["06","浜名湖"],["07","蒲郡"],["08","常滑"],["09","津"],["10","三国"],
+  ["11","びわこ"],["12","住之江"],["13","尼崎"],["14","鳴門"],["15","丸亀"],
+  ["16","児島"],["17","宮島"],["18","徳山"],["19","下関"],["20","若松"],
+  ["21","芦屋"],["22","福岡"],["23","唐津"],["24","大村"],
+];
+
+function initSelectors() {
+  const now = new Date();
+  const curMonth = now.getMonth() + 1;
+  const curDay = now.getDate();
+
+  const selMonth = document.getElementById("selMonth");
+  for (let m = 1; m <= 12; m++) {
+    const opt = new Option(`${m}`, String(m).padStart(2, "0"));
+    if (m === curMonth) opt.selected = true;
+    selMonth.appendChild(opt);
+  }
+
+  const selDay = document.getElementById("selDay");
+  for (let d = 1; d <= 31; d++) {
+    const opt = new Option(`${d}`, String(d).padStart(2, "0"));
+    if (d === curDay) opt.selected = true;
+    selDay.appendChild(opt);
+  }
+
+  const selJou = document.getElementById("selJou");
+  for (const [code, name] of VENUES) {
+    const opt = new Option(`${name}`, code);
+    if (code === "12") opt.selected = true;
+    selJou.appendChild(opt);
+  }
+
+  const selRace = document.getElementById("selRace");
+  for (let r = 1; r <= 12; r++) {
+    const opt = new Option(`${r}R`, String(r).padStart(2, "0"));
+    selRace.appendChild(opt);
+  }
+}
+
+function buildRaceId() {
+  const month = document.getElementById("selMonth").value;
+  const day = document.getElementById("selDay").value;
+  const jcd = document.getElementById("selJou").value;
+  const rno = document.getElementById("selRace").value;
+  return `2026${month}${day}${jcd}${rno}`;
+}
+
+function createRow(combo) {
   const row = document.createElement("div");
   row.className = "bet-row";
   row.innerHTML = `
     <span class="field-label">買い目</span>
     <input type="text" class="combo-input" value="${combo}" placeholder="1-2-3">
-    <span class="field-label">オッズ</span>
-    <input type="number" class="odds-input" value="${odds}" placeholder="0.0" step="0.1" min="1">
     <button class="remove-btn" onclick="removeRow(this)" title="削除">&times;</button>
   `;
   return row;
 }
 
-function addRow(combo, odds) {
+function addRow(combo) {
   const container = document.getElementById("betRows");
-  container.appendChild(createRow(combo || "", odds || ""));
+  container.appendChild(createRow(combo || ""));
 }
 
 function removeRow(btn) {
@@ -239,41 +333,57 @@ function removeRow(btn) {
 }
 
 function initRows() {
-  for (const c of DEFAULT_COMBOS) addRow(c, "");
-}
-
-function runCalculation() {
-  const BUDGET = parseInt(document.getElementById("inputBudget").value) || 30000;
-  const TARGET = parseInt(document.getElementById("inputTarget").value) || 1000000;
-
-  const rows = document.querySelectorAll(".bet-row");
-  const items = [];
-  rows.forEach(row => {
-    const combo = row.querySelector(".combo-input").value.trim();
-    const odds = parseFloat(row.querySelector(".odds-input").value);
-    if (combo && !isNaN(odds) && odds >= 1.0) {
-      items.push({ combination: combo, odds });
-    }
-  });
-
-  const COMBINATIONS = [...new Set(
-    Array.from(document.querySelectorAll(".combo-input"))
-      .map(el => el.value.trim()).filter(Boolean)
-  )];
-
-  if (COMBINATIONS.length === 0) {
-    setStatus("買い目を入力してください", true);
-    return;
-  }
-
-  processOdds(items, BUDGET, TARGET, COMBINATIONS);
-  setStatus("", false);
+  for (const c of DEFAULT_COMBOS) addRow(c);
 }
 
 function setStatus(msg, isError) {
   const el = document.getElementById("status");
   el.textContent = msg;
   el.className = isError ? "error" : "";
+}
+
+async function handleFetch() {
+  const raceId = buildRaceId();
+
+  const combos = Array.from(document.querySelectorAll('.combo-input'))
+    .map(el => el.value.trim())
+    .filter(Boolean);
+
+  if (combos.length === 0) {
+    setStatus("買い目を1点以上入力してください", true);
+    return;
+  }
+
+  const combinationsParam = combos.join(",");
+  const url = `${BACKEND_URL}/odds?raceId=${encodeURIComponent(raceId)}&combinations=${encodeURIComponent(combinationsParam)}`;
+
+  const btn = document.getElementById("fetchBtn");
+  const spinner = document.getElementById("spinner");
+  btn.disabled = true;
+  spinner.style.display = "inline-block";
+  setStatus("オッズ取得中...", false);
+
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) {
+      const detail = resp.status === 503 ? "オッズ取得失敗（レースデータなし）" : `サーバーエラー (${resp.status})`;
+      setStatus(detail, true);
+      return;
+    }
+    const data = await resp.json();
+
+    const BUDGET = parseInt(document.getElementById('inputBudget').value) || 30000;
+    const TARGET = parseInt(document.getElementById('inputTarget').value) || 1000000;
+    const COMBINATIONS = combos;
+
+    processOdds(data.items, BUDGET, TARGET, COMBINATIONS);
+    setStatus(`取得完了 — ${data.fetchedAt}`, false);
+  } catch (e) {
+    setStatus("バックエンドに接続できません", true);
+  } finally {
+    btn.disabled = false;
+    spinner.style.display = "none";
+  }
 }
 
 function processOdds(items, BUDGET, TARGET, COMBINATIONS) {
@@ -369,6 +479,7 @@ function processOdds(items, BUDGET, TARGET, COMBINATIONS) {
   }
 }
 
+initSelectors();
 initRows();
 </script>
 </body>
